@@ -1,0 +1,33 @@
+docker run --name postgres-server `
+  --network pgbouncer-net `
+  -e POSTGRES_PASSWORD=turtlecode `
+  -e POSTGRES_DB=testdb `
+  -e POSTGRES_HOST_AUTH_METHOD=trust `
+  -p 5432:5432 `
+  -d postgres:latest
+
+
+
+
+docker run --name pgbouncer-server `
+  --network pgbouncer-net `
+  -e DB_USER=postgres `
+  -e DB_PASSWORD=turtlecode `
+  -e DB_HOST=postgres-server `
+  -e DB_NAME=testdb `
+  -e LISTEN_PORT=6432 `
+  -e POOL_MODE=transaction `
+  -e MAX_CLIENT_CONN=200 `
+  -e DEFAULT_POOL_SIZE=20 `
+  -e AUTH_TYPE=trust `
+  -p 6432:6432 `
+  -d edoburu/pgbouncer
+
+
+docker exec -i postgres-server sh -c "echo 'SELECT 1;' > /tmp/test.sql"
+
+
+docker exec -it postgres-server pgbench -h localhost -p 5432 -U postgres -c 20 -t 1000 -C -n -f /tmp/test.sql testdb
+
+docker exec -it postgres-server pgbench -h pgbouncer-server -p 6432 -U postgres -c 20 -t 1000 -C -n -f /tmp/test.sql testdb
+
