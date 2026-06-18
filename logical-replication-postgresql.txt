@@ -1,0 +1,96 @@
+docker-compose.yml
+
+version: '3.8'
+
+services:
+  hq_postgres:
+    image: postgres:15
+    container_name: hq_node
+    environment:
+      POSTGRES_USER: admin_user
+      POSTGRES_PASSWORD: SecretPassword123
+      POSTGRES_DB: hq_database
+    ports:
+      - "5432:5432"
+    # Crucial step: Enable logical replication in the Write-Ahead Log
+    command: postgres -c wal_level=logical
+
+  branch_postgres:
+    image: postgres:15
+    container_name: branch_node
+    environment:
+      POSTGRES_USER: admin_user
+      POSTGRES_PASSWORD: SecretPassword123
+      POSTGRES_DB: branch_database
+    ports:
+      - "5433:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin_monitor
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@demo.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+
+docker-compose up -d
+
+
+http://localhost:5050/
+
+admin@demo.com
+
+admin
+
+
+hq_node
+5432
+hq_database
+admin_user
+SecretPassword123
+
+branch_node
+5432
+branch_database
+admin_user
+SecretPassword123
+
+hq_database:
+
+CREATE TABLE employee_directory (
+    emp_id SERIAL PRIMARY KEY,
+    full_name VARCHAR(100),
+    department VARCHAR(50),
+    status VARCHAR(20)
+);
+
+INSERT INTO employee_directory (full_name, department, status) 
+VALUES 
+    ('John Doe', 'Engineering', 'ACTIVE'),
+    ('Jane Smith', 'Marketing', 'ACTIVE'),
+    ('Michael Johnson', 'Sales', 'ACTIVE'),
+    ('Emily Davis', 'HR', 'ACTIVE'),
+    ('William Brown', 'Engineering', 'ACTIVE');
+
+select * from employee_directory;
+
+CREATE PUBLICATION hq_data_feed FOR TABLE employee_directory;
+
+INSERT INTO employee_directory (full_name, department, status) 
+VALUES ('Sarah Connor', 'Security', 'ACTIVE');
+
+branch_database
+
+CREATE TABLE employee_directory (
+    emp_id SERIAL PRIMARY KEY,
+    full_name VARCHAR(100),
+    department VARCHAR(50),
+    status VARCHAR(20)
+);
+
+select * from employee_directory;
+
+CREATE SUBSCRIPTION branch_sync_listener
+CONNECTION 'host=hq_node port=5432 dbname=hq_database user=admin_user password=SecretPassword123'
+PUBLICATION hq_data_feed;
