@@ -1,0 +1,37 @@
+services:
+  primary_node:
+    image: bitnami/postgresql:latest
+    container_name: primary_node
+    environment:
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_USERNAME=admin_user
+      - POSTGRESQL_PASSWORD=SecretPassword123
+      - POSTGRESQL_DATABASE=company_db
+    ports:
+      - "5432:5432"
+
+  standby_node:
+    image: bitnami/postgresql:latest
+    container_name: standby_node
+    environment:
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=repl_password
+      - POSTGRESQL_MASTER_HOST=primary_node
+      - POSTGRESQL_MASTER_PORT_NUMBER=5432
+      - POSTGRESQL_PASSWORD=SecretPassword123
+    ports:
+      - "5433:5432"
+    depends_on:
+      - primary_node
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin_monitor
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@demo.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
